@@ -22,13 +22,13 @@ const register = async ({username, password}) => {
     }
 
     const passwordHash = await hashPassword(password);
+    const userKey = `user:${trimmedUsername}`;
+    const createdAt = new Date().toISOString();
 
-    await client.hset(`user:${trimmedUsername}`, {
-        username: trimmedUsername,
-        password: passwordHash,
-        createdAt: new Date().toISOString(),
-        lastLoginAt: null,
-    });
+    await client.hSet(userKey, 'username', trimmedUsername);
+    await client.hSet(userKey, 'password', passwordHash);
+    await client.hSet(userKey, 'createdAt', createdAt);
+    await client.hSet(userKey, 'lastLoginAt', '');
 
     return 'User created successfully';
 };
@@ -48,7 +48,7 @@ const login = async ({ username, password }) => {
         throw { status: 401, message: 'Invalid username or password' };
     }
     
-    await client.hset(`user:${trimmedUsername}`, { lastLoginAt: new Date().toISOString() });
+    await client.hSet(`user:${trimmedUsername}`, 'lastLoginAt', new Date().toISOString());
 
     return 'Login successful';
 }

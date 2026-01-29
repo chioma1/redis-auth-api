@@ -1,6 +1,6 @@
 jest.mock('../redis', () => ({
     exists: jest.fn(),
-    hset: jest.fn(),
+    hSet: jest.fn(),
     hGetAll: jest.fn(),
 }));
 
@@ -25,22 +25,17 @@ describe('authService', () => {
             validatePassword.mockReturnValue(true);
             client.exists.mockResolvedValue(0);
             hashPassword.mockResolvedValue(fakeBcryptHash);
-            client.hset.mockResolvedValue(1);
+            client.hSet.mockResolvedValue(1);
 
             const res = await register({ username: ' mary ', password: 'StrongPass1' });
 
             expect(res).toBe('User created successfully');
             expect(client.exists).toHaveBeenCalledWith('user:mary');
             expect(hashPassword).toHaveBeenCalledWith('StrongPass1');
-            expect(client.hset).toHaveBeenCalledWith(
-                'user:mary',
-                expect.objectContaining({
-                    username: 'mary',
-                    password: fakeBcryptHash,
-                    createdAt: expect.any(String),
-                    lastLoginAt: null,
-                })
-            );
+            expect(client.hSet).toHaveBeenCalledWith('user:mary', 'username', 'mary');
+            expect(client.hSet).toHaveBeenCalledWith('user:mary', 'password', fakeBcryptHash);
+            expect(client.hSet).toHaveBeenCalledWith('user:mary', 'createdAt', expect.any(String));
+            expect(client.hSet).toHaveBeenCalledWith('user:mary', 'lastLoginAt', '');
         });
 
         test('rejects when username already exists', async () => {
@@ -74,14 +69,14 @@ describe('authService', () => {
             const fakeBcryptHash = '$2b$10$fakehashfakehashfakehashfakehashfakehashfakehashfakehashfake';
             client.hGetAll.mockResolvedValue({ username: 'mary', password: fakeBcryptHash });
             comparePassword.mockResolvedValue(true);
-            client.hset.mockResolvedValue(1);
+            client.hSet.mockResolvedValue(1);
 
             const res = await login({ username: ' mary ', password: 'StrongPass1' });
 
             expect(res).toBe('Login successful');
             expect(client.hGetAll).toHaveBeenCalledWith('user:mary');
             expect(comparePassword).toHaveBeenCalledWith('StrongPass1', fakeBcryptHash);
-            expect(client.hset).toHaveBeenCalledWith('user:mary', { lastLoginAt: expect.any(String) });
+            expect(client.hSet).toHaveBeenCalledWith('user:mary', 'lastLoginAt', expect.any(String));
         });
 
         test('returns generic 401 for unknown user', async () => {
